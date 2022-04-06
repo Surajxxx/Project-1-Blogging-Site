@@ -32,7 +32,7 @@ const createBlog = async function (req, res) {
   try {
     const requestBody = req.body;
     const queryParams = req.query;
-    const inputToken = req.headers["x-api-key"];
+    const decodedToken = req.decodedToken;
 
     if (isValidRequest(queryParams)) {
       return res
@@ -91,6 +91,11 @@ const createBlog = async function (req, res) {
           status: false,
           message: `No such author found by ${authorId} `,
         });
+    }
+
+    //authorization
+    if(authorId != decodedToken.authorId){
+      return res.status(403).send({status : false, message : "Unauthorized access"})
     }
 
     if (!isValid(category)) {
