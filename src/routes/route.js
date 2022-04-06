@@ -11,24 +11,16 @@ router.get('/test', function(req, res){
 
 //**************************************AUTHOR API's**************************************************** */
 
-// Create author
+// Create author // authorLogin
 router.post('/authors', AuthorController.createAuthor)
-
-// login
 router.get('/login', AuthorController.authorLogin)
 
 //*****************************************BLOG API's**************************************************** */
 
- // Create blogs
- router.post('/blogs', MiddleWare.authentication, BlogsController.createBlog )
-
-// Get blogs 
+ // Create blog // Get blogs // Update blog //Delete blog by path params // Delete blogs by query params
+router.post('/blogs', MiddleWare.authentication, BlogsController.createBlog )
 router.get('/blogs', MiddleWare.authentication, BlogsController.getBlogs)
-
-//update blogs
 router.put('/blogs/:blogId',MiddleWare.authentication, MiddleWare.authorization, BlogsController.updateBlog)
-
-//Deleted blogs by params
 router.delete('/blogs/:blogId', MiddleWare.authentication, MiddleWare.authorization, BlogsController.deleteBlog)
 router.delete('/blogs', MiddleWare.authentication, BlogsController.deleteFilteredBlog)
 

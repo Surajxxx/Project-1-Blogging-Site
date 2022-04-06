@@ -12,6 +12,7 @@ const authentication = async function (req, res, next) {
   }
 
   try {
+    // using ignoreExpiration to handle session expired error separately
     const decodedToken = jwt.verify(token, secretKey, {
       ignoreExpiration: true,
     });
@@ -21,7 +22,7 @@ const authentication = async function (req, res, next) {
         .status(401)
         .send({ status: false, message: "Session expired, please login" });
     }
-
+    // adding a decodedToken as a property inside request object so that could be accessed in other handlers and middleWares of same API
     req.decodedToken = decodedToken;
 
     next();
@@ -61,5 +62,4 @@ const authorization = async function (req, res, next) {
 
 //************************************EXPORTING BOTH MIDDLEWARE FUNCTIONS****************************** */
 
-module.exports.authentication = authentication;
-module.exports.authorization = authorization;
+module.exports = { authentication, authorization };

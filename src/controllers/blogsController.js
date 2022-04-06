@@ -34,28 +34,29 @@ const createBlog = async function (req, res) {
     const queryParams = req.query;
     const decodedToken = req.decodedToken;
 
+    //query params must be empty
     if (isValidRequest(queryParams)) {
       return res
         .status(400)
         .send({ status: false, message: "invalid request" });
     }
-
+    // request body must not be empty
     if (!isValidRequest(requestBody)) {
       return res
         .status(400)
         .send({ status: false, message: "Blog details are required" });
     }
 
+    //using destructuring
     const { title, body, authorId, category, tags, subcategory, isPublished } =
       requestBody;
 
+    // checking keys inside requestBody
     if (Object.keys(requestBody).length > 7) {
-      return res
-        .status(400)
-        .send({
-          status: false,
-          message: "invalid data entry inside request body",
-        });
+      return res.status(400).send({
+        status: false,
+        message: "invalid data entry inside request body",
+      });
     }
 
     if (!isValid(title)) {
@@ -85,17 +86,17 @@ const createBlog = async function (req, res) {
     const authorByAuthorId = await AuthorModel.findById(authorId);
 
     if (!authorByAuthorId) {
-      return res
-        .status(404)
-        .send({
-          status: false,
-          message: `No such author found by ${authorId} `,
-        });
+      return res.status(404).send({
+        status: false,
+        message: `No author found by ${authorId} `,
+      });
     }
 
-    //authorization
-    if(authorId != decodedToken.authorId){
-      return res.status(403).send({status : false, message : "Unauthorized access"})
+    // is author authorized to create this blog
+    if (authorId != decodedToken.authorId) {
+      return res
+        .status(403)
+        .send({ status: false, message: "Unauthorized access" });
     }
 
     if (!isValid(category)) {
@@ -104,25 +105,22 @@ const createBlog = async function (req, res) {
         .send({ status: false, message: " Blog category is required" });
     }
 
+    // tags and subcategory could be an array or string
     if (requestBody.hasOwnProperty("tags")) {
       if (!isValidTagsAndSubcategory(tags)) {
-        return res
-          .status(400)
-          .send({
-            status: false,
-            message: " Blog tags must be in valid format",
-          });
+        return res.status(400).send({
+          status: false,
+          message: " Blog tags must be in valid format",
+        });
       }
     }
 
     if (requestBody.hasOwnProperty("subcategory")) {
       if (!isValidTagsAndSubcategory(subcategory)) {
-        return res
-          .status(400)
-          .send({
-            status: false,
-            message: " Blog subcategory must be in valid format",
-          });
+        return res.status(400).send({
+          status: false,
+          message: " Blog subcategory must be in valid format",
+        });
       }
     }
 
@@ -145,6 +143,7 @@ const createBlog = async function (req, res) {
       deletedAt: null,
     };
 
+    // if blog is to be published after creation then publishedAt to be updated
     if (isPublished == true) {
       blogData.isPublished = isPublished;
       blogData.publishedAt = Date.now();
@@ -155,13 +154,11 @@ const createBlog = async function (req, res) {
 
     const blog = await BlogModel.create(blogData);
 
-    res
-      .status(201)
-      .send({
-        status: true,
-        message: "new blog created successfully",
-        data: blog,
-      });
+    res.status(201).send({
+      status: true,
+      message: "new blog created successfully",
+      data: blog,
+    });
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
@@ -173,6 +170,8 @@ const getBlogs = async function (req, res) {
   try {
     const requestBody = req.body;
     const queryParams = req.query;
+
+    // conditions to find all not deleted blogs
     const filterCondition = {
       isDeleted: false,
       isPublished: true,
@@ -180,14 +179,13 @@ const getBlogs = async function (req, res) {
     };
 
     if (isValidRequest(requestBody)) {
-      return res
-        .status(400)
-        .send({
-          status: false,
-          message: "Data is not required in request body",
-        });
+      return res.status(400).send({
+        status: false,
+        message: "Data is not required in request body",
+      });
     }
 
+    // if queryParams are present then each key to be validate then only to be added to filterCondition object. on that note filtered blogs to be returned
     if (isValidRequest(queryParams)) {
       const { authorId, category, tags, subcategory } = queryParams;
 
@@ -197,10 +195,12 @@ const getBlogs = async function (req, res) {
             .status(400)
             .send({ status: false, message: " Enter a valid authorId " });
         }
-        const authorByAuthorId = await AuthorModel.findById(authorId)
+        const authorByAuthorId = await AuthorModel.findById(authorId);
 
-        if(!authorByAuthorId){
-            return res.status(404).send({status : false, message : "no author found"})
+        if (!authorByAuthorId) {
+          return res
+            .status(404)
+            .send({ status: false, message: "no author found" });
         }
 
         filterCondition["authorId"] = authorId;
@@ -208,37 +208,31 @@ const getBlogs = async function (req, res) {
 
       if (queryParams.hasOwnProperty("category")) {
         if (!isValid(category)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog category should be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog category should be in valid format",
+          });
         }
         filterCondition["category"] = category.trim();
       }
-
+      // If tags and subcategory are an array then validating each element
       if (queryParams.hasOwnProperty("tags")) {
         if (Array.isArray(tags)) {
           for (let i = 0; i < tags.length; i++) {
             if (!isValid(tags[i])) {
-              return res
-                .status(400)
-                .send({
-                  status: false,
-                  message: " Blog tags must be in valid format",
-                });
+              return res.status(400).send({
+                status: false,
+                message: " Blog tags must be in valid format",
+              });
             }
             filterCondition["tags"] = tags[i].trim();
           }
         } else {
           if (!isValid(tags)) {
-            return res
-              .status(400)
-              .send({
-                status: false,
-                message: " Blog tags must be in valid format",
-              });
+            return res.status(400).send({
+              status: false,
+              message: " Blog tags must be in valid format",
+            });
           }
           filterCondition["tags"] = tags.trim();
         }
@@ -248,23 +242,19 @@ const getBlogs = async function (req, res) {
         if (Array.isArray(subcategory)) {
           for (let i = 0; i < subcategory.length; i++) {
             if (!isValid(subcategory[i])) {
-              return res
-                .status(400)
-                .send({
-                  status: false,
-                  message: " Blog subcategory must be in valid format",
-                });
+              return res.status(400).send({
+                status: false,
+                message: " Blog subcategory must be in valid format",
+              });
             }
             filterCondition["subcategory"] = subcategory[i].trim();
           }
         } else {
           if (!isValid(subcategory)) {
-            return res
-              .status(400)
-              .send({
-                status: false,
-                message: " Blog subcategory must be in valid format",
-              });
+            return res.status(400).send({
+              status: false,
+              message: " Blog subcategory must be in valid format",
+            });
           }
           filterCondition["subcategory"] = subcategory.trim();
         }
@@ -278,14 +268,14 @@ const getBlogs = async function (req, res) {
           .send({ status: false, message: "no blogs found" });
       }
 
-      res
-        .status(200)
-        .send({
-          status: true,
-          message: "filtered blogs list",
-          blogsCount: filteredBlogs.length,
-          blogList: filteredBlogs,
-        });
+      res.status(200).send({
+        status: true,
+        message: "filtered blogs list",
+        blogsCount: filteredBlogs.length,
+        blogList: filteredBlogs,
+      });
+
+      //if no queryParams are provided then finding all not deleted blogs
     } else {
       const allBlogs = await BlogModel.find(filterCondition);
 
@@ -295,14 +285,12 @@ const getBlogs = async function (req, res) {
           .send({ status: false, message: "no blogs found" });
       }
 
-      res
-        .status(200)
-        .send({
-          status: true,
-          message: "blogs list",
-          blogsCount: allBlogs.length,
-          blogList: allBlogs,
-        });
+      res.status(200).send({
+        status: true,
+        message: "blogs list",
+        blogsCount: allBlogs.length,
+        blogList: allBlogs,
+      });
     }
   } catch (error) {
     res.status(500).send({ error: error.message });
@@ -324,12 +312,10 @@ const updateBlog = async function (req, res) {
     }
 
     if (!isValidRequest(requestBody)) {
-      return res
-        .status(400)
-        .send({
-          status: false,
-          message: "Blog details are required for update",
-        });
+      return res.status(400).send({
+        status: false,
+        message: "Blog details are required for update",
+      });
     }
 
     if (!isValidObjectId(blogId)) {
@@ -349,8 +335,10 @@ const updateBlog = async function (req, res) {
         .status(404)
         .send({ status: false, message: `no blog found by ${blogId}` });
     }
-
+    // using destructuring then validating selected keys by client
     const { title, body, tags, subcategory } = requestBody;
+
+    // update object has been created with two properties. if updating key is a to be replaced && type is string then will be added to $set and if it is to be added && type is an array then will be added to $addToSet
 
     const update = {
       $set: { isPublished: true, publishedAt: Date.now() },
@@ -359,24 +347,20 @@ const updateBlog = async function (req, res) {
 
     if (requestBody.hasOwnProperty("title")) {
       if (!isValid(title)) {
-        return res
-          .status(400)
-          .send({
-            status: false,
-            message: " Blog title should be in valid format",
-          });
+        return res.status(400).send({
+          status: false,
+          message: " Blog title should be in valid format",
+        });
       }
       update.$set["title"] = title.trim();
     }
 
     if (requestBody.hasOwnProperty("body")) {
       if (!isValid(body)) {
-        return res
-          .status(400)
-          .send({
-            status: false,
-            message: " Blog body should be in valid format",
-          });
+        return res.status(400).send({
+          status: false,
+          message: " Blog body should be in valid format",
+        });
       }
       update.$set["body"] = body.trim();
     }
@@ -385,23 +369,19 @@ const updateBlog = async function (req, res) {
       if (Array.isArray(tags)) {
         for (let i = 0; i < tags.length; i++) {
           if (!isValid(tags[i])) {
-            return res
-              .status(400)
-              .send({
-                status: false,
-                message: " Blog tags must be in valid format",
-              });
+            return res.status(400).send({
+              status: false,
+              message: " Blog tags must be in valid format",
+            });
           }
         }
         update.$addToSet["tags"] = { $each: tags };
       } else {
         if (!isValid(tags)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog tags must be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog tags must be in valid format",
+          });
         }
         update.$addToSet["tags"] = tags.trim();
       }
@@ -411,23 +391,19 @@ const updateBlog = async function (req, res) {
       if (Array.isArray(subcategory)) {
         for (let i = 0; i < subcategory.length; i++) {
           if (!isValid(subcategory[i])) {
-            return res
-              .status(400)
-              .send({
-                status: false,
-                message: " Blog subcategory must be in valid format",
-              });
+            return res.status(400).send({
+              status: false,
+              message: " Blog subcategory must be in valid format",
+            });
           }
         }
         update.$addToSet["subcategory"] = { $each: subcategory };
       } else {
         if (!isValid(subcategory)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog subcategory must be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog subcategory must be in valid format",
+          });
         }
         update.$addToSet["subcategory"] = subcategory.trim();
       }
@@ -439,13 +415,11 @@ const updateBlog = async function (req, res) {
       { new: true }
     );
 
-    res
-      .status(200)
-      .send({
-        status: true,
-        message: "Blog updated successfully",
-        data: updatedBlog,
-      });
+    res.status(200).send({
+      status: true,
+      message: "Blog updated successfully",
+      data: updatedBlog,
+    });
   } catch (error) {
     res.status(500).send({ status: false, message: error.message });
   }
@@ -466,12 +440,10 @@ const deleteBlog = async function (req, res) {
     }
 
     if (isValidRequest(requestBody)) {
-      return res
-        .status(400)
-        .send({
-          status: false,
-          message: "data is not required inside request body",
-        });
+      return res.status(400).send({
+        status: false,
+        message: "data is not required inside request body",
+      });
     }
 
     if (!isValidObjectId(blogId)) {
@@ -515,12 +487,10 @@ const deleteFilteredBlog = async function (req, res) {
     const authorIdFromToken = req.decodedToken.authorId;
 
     if (isValidRequest(requestBody)) {
-      return res
-        .status(400)
-        .send({
-          status: false,
-          message: "data is not required inside request body",
-        });
+      return res.status(400).send({
+        status: false,
+        message: "data is not required inside request body",
+      });
     }
 
     const filterCondition = {
@@ -529,39 +499,33 @@ const deleteFilteredBlog = async function (req, res) {
       isPublished: false,
       publishedAt: null,
     };
-
+    // first we will find all the filtered blogs then these filteredBlogs will be filtered as per authorization then authorizedBlogs will be deleted
     if (isValidRequest(queryParams)) {
       const { title, authorId, subcategory, tags } = queryParams;
 
       if (Object.keys(queryParams).length > 4) {
-        return res
-          .status(400)
-          .send({
-            status: false,
-            message: "invalid entry inside query params",
-          });
+        return res.status(400).send({
+          status: false,
+          message: "invalid entry inside query params",
+        });
       }
 
       if (queryParams.hasOwnProperty("title")) {
         if (!isValid(title)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog title should be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog title should be in valid format",
+          });
         }
         filterCondition["title"] = title.trim();
       }
 
       if (queryParams.hasOwnProperty("authorId")) {
         if (!isValid(authorId)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog authorId should be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog authorId should be in valid format",
+          });
         }
 
         if (!isValidObjectId(authorId)) {
@@ -573,37 +537,31 @@ const deleteFilteredBlog = async function (req, res) {
         const authorByAuthorId = await AuthorModel.findById(authorId);
 
         if (!authorByAuthorId) {
-          return res
-            .status(404)
-            .send({
-              status: false,
-              message: ` no author found by ${authorId}`,
-            });
+          return res.status(404).send({
+            status: false,
+            message: ` no author found by ${authorId}`,
+          });
         }
 
-        filterCondition["authorId"] = authorId
+        filterCondition["authorId"] = authorId;
       }
 
       if (queryParams.hasOwnProperty("subcategory")) {
         if (!isValid(subcategory)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog subcategory must be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog subcategory must be in valid format",
+          });
         }
         filterCondition["subcategory"] = subcategory;
       }
 
       if (queryParams.hasOwnProperty("tags")) {
         if (!isValid(tags)) {
-          return res
-            .status(400)
-            .send({
-              status: false,
-              message: " Blog tags must be in valid format",
-            });
+          return res.status(400).send({
+            status: false,
+            message: " Blog tags must be in valid format",
+          });
         }
         filterCondition["tags"] = tags;
       }
@@ -618,26 +576,23 @@ const deleteFilteredBlog = async function (req, res) {
         });
 
         const markDirtyBlogs = await BlogModel.updateMany(
-          { $in: blogsToBeDeleted },
+          { _id: { $in: blogsToBeDeleted } },
           { $set: { isDeleted: true, deletedAt: Date.now() } }
         );
 
         res
           .status(200)
           .send({ status: true, message: "blogs deleted successfully" });
-
       } else {
         return res
           .status(404)
           .send({ status: false, message: "no blogs found" });
       }
     } else {
-      return res
-        .status(400)
-        .send({
-          status: false,
-          message: "data is required for deleting blogs ",
-        });
+      return res.status(400).send({
+        status: false,
+        message: "data is required for deleting blogs ",
+      });
     }
   } catch (error) {
     res.status(500).send({ error: error.message });
@@ -646,8 +601,10 @@ const deleteFilteredBlog = async function (req, res) {
 
 //**************************************EXPORTING ALL BLOG'S HANDLERS****************************************** */
 
-module.exports.createBlog = createBlog;
-module.exports.getBlogs = getBlogs;
-module.exports.updateBlog = updateBlog;
-module.exports.deleteBlog = deleteBlog;
-module.exports.deleteFilteredBlog = deleteFilteredBlog;
+module.exports = {
+  createBlog,
+  getBlogs,
+  updateBlog,
+  deleteBlog,
+  deleteFilteredBlog,
+};

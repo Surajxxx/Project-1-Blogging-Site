@@ -25,6 +25,7 @@ const createAuthor = async function (req, res) {
     const requestBody = req.body;
     const queryParams = req.query;
 
+    //query params must be empty
     if (isValidRequest(queryParams)) {
       return res
         .status(400)
@@ -36,9 +37,10 @@ const createAuthor = async function (req, res) {
         .status(400)
         .send({ status: false, message: "author data is required" });
     }
-
+    //using destructuring
     const { title, fname, lname, email, password } = requestBody;
 
+    // requestBody should not have more than 5 keys as per authorSchema
     if(Object.keys(requestBody).length > 5){
         return res.status(400).send({status: false, message : "invalid data entry inside request body"})
     }
@@ -168,6 +170,7 @@ const authorLogin = async function (req, res) {
         .send({ status: false, message: "invalid login credentials" });
     }
 
+    // creating a jsonWebToken and sending it to response header and body
     const payLoad = { authorId: author._id };
     const secretKey = "myprivatekeycontains123!@#";
 
@@ -185,5 +188,4 @@ const authorLogin = async function (req, res) {
 
 //**************************************EXPORTING BOTH HANDLERS********************************************* */
 
-module.exports.createAuthor = createAuthor;
-module.exports.authorLogin = authorLogin;
+module.exports = {createAuthor,  authorLogin}
